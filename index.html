@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>paylink</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fff;
+    margin: 0; padding: 0;
+    color: #1d1d1f;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid #e5e5e5;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  button {
+    background: #007aff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #0051c7;
+  }
+  .container {
+    padding: 60px 30px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  h2 {
+    font-weight: 600;
+    margin-bottom: 30px;
+  }
+  label {
+    display: block;
+    margin-top: 20px;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  input {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    box-sizing: border-box;
+  }
+  #payBtn, #topUpBtn {
+    margin-top: 30px;
+    padding: 14px 25px;
+    font-size: 18px;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    width: 100%;
+  }
+  #payBtn {
+    background: #34c759;
+  }
+  #payBtn:hover {
+    background: #28a745;
+  }
+  #topUpBtn {
+    background: #ff9500;
+  }
+  #topUpBtn:hover {
+    background: #cc7a00;
+  }
+  #receiptPopup, #balancePopup {
+    display: none;
+    position: fixed;
+    top: 80px;
+    right: 30px;
+    width: 400px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    z-index: 1000;
+  }
+  .receipt {
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+  }
+  .receipt:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  .receipt h4 {
+    margin: 0 0 10px;
+    font-size: 17px;
+  }
+  .receipt p {
+    margin: 4px 0;
+    font-size: 15px;
+  }
+  #payForm, #topUpForm {
+    display: none;
+  }
+  #topUpHistory {
+    margin-top: 40px;
+    border-top: 1px solid #ddd;
+    padding-top: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  #topUpHistory h3 {
+    margin-top: 0;
+  }
+  #balancePopup h3 {
+    margin-top: 0;
+  }
+  #balanceList p {
+    margin: 6px 0;
+    font-size: 15px;
+  }
+  #balanceAmount {
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+  /* Стиль для индикатора загрузки */
+  #loadingIndicator {
+    display: none;
+    text-align: center;
+    margin-top: 20px;
+    font-weight: 600;
+    color: #007aff;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button id="showPayFormBtn" onclick="showForm('pay')">Оплатить</button>
+  <button id="showTopUpFormBtn" onclick="showForm('topup')">Пополнить</button>
+  <button id="balanceBtn" onclick="toggleBalance()">Баланс</button>
+  <button id="receiptBtn" onclick="toggleReceipt()">Чеки</button>
+</header>
+
+<div class="container">
+
+  <form id="payForm">
+    <h2>Оплата клиента</h2>
+    <label for="clientId">ID клиента</label>
+    <input type="text" id="clientId" placeholder="Например, 543678" />
+    <label for="amount">Сумма (₽)</label>
+    <input type="number" id="amount" value="500" />
+    <button type="button" id="payBtn" onclick="pay()">Оплатить</button>
+  </form>
+
+  <form id="topUpForm">
+    <h2>Пополнение счета</h2>
+    <label for="cardNumber">Номер карты для пополнения:</label>
+    <input type="text" id="cardNumber" placeholder="Введите номер карты" maxlength="19" />
+    <label for="topUpAmount">Сумма пополнения (₽)</label>
+    <input type="number" id="topUpAmount" placeholder="Введите сумму" />
+    <button type="button" id="topUpBtn" onclick="topUp()">Пополнить</button>
+
+    <div id="topUpHistory">
+      <h3>История пополнений</h3>
+      <div id="topUpList"></div>
+    </div>
+  </form>
+
+  <!-- Индикатор загрузки -->
+  <div id="loadingIndicator">Загрузка...</div>
+
+</div>
+
+<!-- История оплат -->
+<div id="receiptPopup">
+  <h3 style="margin-top: 0;">История оплат</h3>
+  <div id="receiptList"></div>
+</div>
+
+<!-- Баланс и история операций -->
+<div id="balancePopup">
+  <h3>Баланс и история операций</h3>
+  <div id="balanceAmount">Баланс: 0 ₽</div>
+  <div id="balanceList"></div>
+</div>
+
+<script>
+  // Загрузка данных из localStorage или инициализация пустыми массивами
+  let payReceipts = JSON.parse(localStorage.getItem('payReceipts')) || [];
+  let topUpReceipts = JSON.parse(localStorage.getItem('topUpReceipts')) || [];
+
+  function showForm(form) {
+    document.getElementById('payForm').style.display = (form === 'pay') ? 'block' : 'none';
+    document.getElementById('topUpForm').style.display = (form === 'topup') ? 'block' : 'none';
+
+    document.getElementById('receiptPopup').style.display = 'none';
+    document.getElementById('balancePopup').style.display = 'none';
+  }
+
+  // По умолчанию показываем форму оплаты
+  showForm('pay');
+
+  function showLoading(show) {
+    const loadingEl = document.getElementById('loadingIndicator');
+    loadingEl.style.display = show ? 'block' : 'none';
+  }
+
+  function pay() {
+    const id = document.getElementById('clientId').value.trim();
+    const amount = document.getElementById('amount').value.trim();
+
+    if (!id || !amount || Number(amount) <= 0) {
+      alert("Пожалуйста, заполните корректно оба поля.");
+      return;
+    }
+
+    showLoading(true);
+
+    setTimeout(() => {
+      const date = new Date().toLocaleString();
+
+      const receipt = {
+        id,
+        amount: Number(amount),
+        date
+      };
+
+      payReceipts.unshift(receipt);
+      if (payReceipts.length > 10) payReceipts.pop();
+
+      // Сохраняем в localStorage
+      localStorage.setItem('payReceipts', JSON.stringify(payReceipts));
+
+      alert("Оплата прошла успешно! История оплат доступна в правом верхнем углу.");
+      updatePayReceipts();
+
+      document.getElementById('clientId').value = '';
+      document.getElementById('amount').value = '';
+
+      showLoading(false);
+    }, 1500);
+  }
+
+  function topUp() {
+    const card = document.getElementById('cardNumber').value.trim();
+    const amount = document.getElementById('topUpAmount').value.trim();
+
+    if (!card || !amount || Number(amount) <= 0) {
+      alert("Пожалуйста, заполните корректно номер карты и сумму пополнения.");
+      return;
+    }
+
+    showLoading(true);
+
+    setTimeout(() => {
+      const date = new Date().toLocaleString();
+
+      const receipt = {
+        card,
+        amount: Number(amount),
+        date
+      };
+
+      topUpReceipts.unshift(receipt);
+      if (topUpReceipts.length > 10) topUpReceipts.pop();
+
+      // Сохраняем в localStorage
+      localStorage.setItem('topUpReceipts', JSON.stringify(topUpReceipts));
+
+      alert("Счёт успешно пополнен! История пополнений обновлена.");
+      updateTopUpReceipts();
+
+      document.getElementById('cardNumber').value = '';
+      document.getElementById('topUpAmount').value = '';
+
+      showLoading(false);
+    }, 1500);
+  }
+
+  function updatePayReceipts() {
+    const container = document.getElementById('receiptList');
+    container.innerHTML = "";
+
+    payReceipts.forEach((r) => {
+      const div = document.createElement("div");
+      div.className = "receipt";
+      div.innerHTML = `
+        <h4>Оплата</h4>
+        <p><strong>ID клиента:</strong> ${r.id}</p>
+        <p><strong>Сумма:</strong> ${r.amount} ₽</p>
+        <p><strong>Дата:</strong> ${r.date}</p>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function updateTopUpReceipts() {
+    const container = document.getElementById('topUpList');
+    container.innerHTML = "";
+
+    topUpReceipts.forEach((r, index) => {
+      const div = document.createElement("div");
+      div.className = "receipt";
+      div.innerHTML = `
+        <h4>Пополнение #${topUpReceipts.length - index}</h4>
+        <p><strong>Сумма:</strong> ${r.amount} ₽</p>
+        <p><strong>Дата:</strong> ${r.date}</p>
+        <p><strong>Карта:</strong> ${r.card}</p>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function toggleReceipt() {
+    const popup = document.getElementById('receiptPopup');
+    const balancePopup = document.getElementById('balancePopup');
+    balancePopup.style.display = 'none';
+
+    if (popup.style.display === 'block') {
+      popup.style.display = 'none';
+    } else {
+      popup.style.display = 'block';
+      updatePayReceipts();
+    }
+  }
+
+  function toggleBalance() {
+    const popup = document.getElementById('balancePopup');
+    const receiptPopup = document.getElementById('receiptPopup');
+    receiptPopup.style.display = 'none';
+
+    if (popup.style.display === 'block') {
+      popup.style.display = 'none';
+    } else {
+      popup.style.display = 'block';
+      updateBalance();
+    }
+  }
+
+  function updateBalance() {
+    const totalTopUp = topUpReceipts.reduce((sum, r) => sum + r.amount, 0);
+    const totalPay = payReceipts.reduce((sum, r) => sum + r.amount, 0);
+    const balance = totalTopUp - totalPay;
+
+    document.getElementById('balanceAmount').textContent = `Баланс: ${balance} ₽`;
+
+    const list = document.getElementById('balanceList');
+    list.innerHTML = '';
+
+    if (topUpReceipts.length) {
+      const topUpHeader = document.createElement('h4');
+      topUpHeader.textContent = 'Пополнения:';
+      list.appendChild(topUpHeader);
+      topUpReceipts.forEach((r) => {
+        const p = document.createElement('p');
+        p.textContent = `+ ${r.amount} ₽ (Карта: ${r.card})`;
+        list.appendChild(p);
+      });
+    }
+
+    if (payReceipts.length) {
+      const payHeader = document.createElement('h4');
+      payHeader.textContent = 'Оплаты:';
+      list.appendChild(payHeader);
+      payReceipts.forEach((r) => {
+        const p = document.createElement('p');
+        p.textContent = `- ${r.amount} ₽`;
+        list.appendChild(p);
+      });
+    }
+
+    if (!topUpReceipts.length && !payReceipts.length) {
+      list.textContent = 'Нет операций.';
+    }
+  }
+
+  // При загрузке страницы обновляем данные на экране
+  updatePayReceipts();
+  updateTopUpReceipts();
+</script>
+
+</body>
+</html>
